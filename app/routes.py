@@ -1,3 +1,4 @@
+from attr import validate
 from app import db
 from app.models.planets import Planet
 from flask import Blueprint, jsonify, abort, make_response, request
@@ -50,9 +51,39 @@ def show_planets():
 @planets_bp.route("/<planet_id>", methods=["GET"])
 def show_requested_planet(planet_id):
     planet = validate_planet_id(planet_id)
+    
     return {
         "id": planet.id,
         "name": planet.name,
         "description": planet.description,
         "num_moons": planet.num_moons
         }
+
+@planets_bp.route("/<planet_id>", methods=["PUT"])
+def replace_planet(planet_id):
+    planet = validate_planet_id(planet_id)
+
+    request_body = request.get_json()
+
+    if "name" not in request_body or \
+        "description" not in request_body or \
+        "num_moons" not in request_body:
+        return jsonify({'error': f'Request must include name, description, and num_moons.'}), 400
+
+    planet.name = request_body["name"]
+    planet.description = request_body["description"]
+    planet.num_moons = request_body["num_moons"]
+
+    db.session.commit()
+
+    return jsonify({'msg': f"Successfully replaced planet with id {planet_id}"})
+
+
+@planets_bp.route("/<planet_id>", methods=["DELETE"])
+def delete_planet(planet_id):
+    planet = validate_planet_id(planet_id)
+
+    db.session.delete(planet)
+    db.session.commit()
+
+    return jsonify({'msg': f'Successfully deleted planet with id {planet_id}'})

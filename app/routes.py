@@ -10,11 +10,13 @@ def validate_planet_id(planet_id):
         planet_id = int(planet_id)
     except ValueError:
         abort(make_response({"error": f"{planet_id} is an invalid planet ID"}, 400))
-    planets = Planet.query.all()
-    for planet in planets:
-        if planet.id == planet_id:
-            return planet
-    abort(make_response({"error": f"planet {planet_id} not found"}, 404))
+    
+    planet = Planet.query.get(planet_id)
+
+    if not planet:
+        abort(make_response({"error": f"planet {planet_id} not found"}, 404))
+    
+    return planet
 
 @planets_bp.route("", methods=["POST"])
 def create_planet():
@@ -35,8 +37,15 @@ def create_planet():
 
 @planets_bp.route("", methods=["GET"])
 def show_planets():
+    name_query = request.args.get("name")
+    
+    if name_query:
+        planets = Planet.query.filter_by(name=name_query)
+    else:
+        planets = Planet.query.all()
+
     response = []
-    planets = Planet.query.all()
+    
     for planet in planets:
         response.append(
             {
